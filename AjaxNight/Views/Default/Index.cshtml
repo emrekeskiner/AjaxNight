@@ -1,0 +1,296 @@
+﻿
+@{
+    ViewData["Title"] = "Index";
+}
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<h3 class="alert alert-primary">Ajax Ürün İşlemler</h3>
+<button id="btnlist" onclick="" class="btn btn-outline-primary">Ürün Listesi</button>
+<button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#CreateProductForm">
+    Yeni Ürün Ekle
+</button>
+
+
+<hr />
+
+<div class="alert alert-dark">Ürün Listesi</div>
+
+<div id="productlist">
+</div>
+<hr />
+
+@* Modal Form Create Product *@
+
+<div class="modal fade" id="CreateProductForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5" id="staticBackdropLabel">Ürün Ekle</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="productname" class="mt-1">Ürün Adı</label>
+                <input type="text" id="productname" class="form-control mb-2" />
+                <label for="productstock">Adet</label>
+                <input type="text" id="productstock" class="form-control mb-2" />
+                <label for="productprice">Fiyatı</label>
+                <input type="text" id="productprice" class="form-control mb-2" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <button id="btncreate" class="btn btn-primary">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Modal Form Update Product *@
+
+<div class="modal fade" id="UpdateProductForm" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-4" id="staticBackdropLabel">Ürün Güncelle</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="productgetidedit" class="form-control" />
+                <label for="productnameedit" class="mt-1">Ürün Adı</label>
+                <input type="text" id="productnameedit" class="form-control mb-2" />
+                <label for="productstockedit">Adet</label>
+                <input type="text" id="productstockedit" class="form-control mb-2" />
+                <label for="productpriceedit">Fiyatı</label>
+                <input type="text" id="productpriceedit" class="form-control mb-2" />
+                
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                <button id="btnupdate" class="btn btn-primary">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+        $("#btnlist").click();
+    });
+
+    $("#btnlist").click(function () {
+        $.ajax({
+            contentType: "application/json",
+            dataType: "json",
+            type: "Get",
+            url: "/Default/ProductList/",
+            success: function (funk1) {
+                let products = JSON.parse(funk1);
+                console.log(products);
+
+                let tablehtml = "<table class=table table-bordered mt-3>"
+                    + "<tr>"
+                    + "<th>Ürün Id</th>"
+                    + "<th>Ürün Adı</th>"
+                    + "<th>Ürün Fiyat</th>"
+                    + "<th>Ürün Stok</th>"
+                    + "<th>İşlemler</th>"
+                    + "</tr>"
+                $.each(products, (index, value) => {
+                    tablehtml += `<tr>`
+                        + `<td>${value.ProductId}</td>`
+                        + `<td>${value.ProductName}</td>`
+                        + `<td>${value.Price}</td>`
+                        + `<td>${value.Stock}</td>`
+                        + `<td><button class="btn btn-danger btn-delete" data-id="${value.ProductId}">Sil</button> 
+                        <button class="btn btn-warning btn-update" data-id="${value.ProductId}" data-bs-toggle="modal" data-bs-target="#UpdateProductForm">Güncelle</button></td>`
+                        + `</tr>`
+                });
+                tablehtml += "</table>";
+                $("#productlist").html(tablehtml);
+            }
+        });
+    });
+
+   
+
+    $("#btncreate").click(function () {
+        let productvalues = {
+            ProductName: $("#productname").val(),
+            Stock: $("#productstock").val(),
+            Price: $("#productprice").val()
+        };
+        $.ajax({
+            type: "post",
+            url: "/Default/CreateProduct/",
+            data: productvalues,
+            success: function (funk2) {
+                let result = JSON.parse(funk2);
+                Swal.fire("Tebrikler!", "Ürün Başarıyla Eklendi!", "success");
+                $("#productname").val('');
+                $("#productstock").val('');
+                $("#productprice").val('');
+                $("#btnlist").click();
+                $('#CreateProductForm').modal('hide');
+            }
+        });
+    });
+
+    $("#btndelete").click(function () {
+        let id = $("#productdeletedid").val();
+        $.ajax({
+            url: "/Default/DeleteProduct/" + id,
+            type: "post",
+            contentType: "application/json",
+            dataType: "json",
+            success: function (funk3) {
+                swal("Tebrikler!", "Ürün Başarıyla Silindi!", "success");
+                $("#productdeletedid").val('');
+                $("#btnlist").click();
+            }
+        });
+    });
+
+    //Table üzerinden silme
+    $("#productlist").on('click', '.btn-delete', function () {
+        let productId = $(this).data('id');
+        Swal.fire({
+            title: "Emin misiniz?",
+            text: "Bu işlemi geri alamazsınız!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Evet, sil!"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    type: "delete",
+                    url: `/Default/DeleteProduct/${productId}`,
+                    success: function (funk6) {
+                        $("#btnlist").click();
+                        Swal.fire({
+                            title: "Silindi!",
+                            text: "Ürün başarıyla silindi.",
+                            icon: "success"
+                        });
+                    }
+                });
+            }
+        });
+    });
+    //Table üzerinden güncelleme
+    $("#productlist").on('click', '.btn-update', function () {
+        let productId = $(this).data('id');
+        $.ajax({
+            contentType: "application/json",
+            dataType: "json",
+            url: "/Default/GetProduct/" + productId,
+            success: function (funk4) {
+                let result = JSON.parse(funk4);
+                console.log(result);
+                $("#productgetidedit").val(result.ProductId);
+                $("#productnameedit").val(result.ProductName);
+                $("#productstockedit").val(result.Stock);
+                $("#productpriceedit").val(result.Price);
+            },
+            error: function (xhr, status, error) {
+                console.error('Ürün bilgileri alınamadı:', error);
+            }
+        });
+    });
+
+    $("#btnget").click(function () {
+        let id = $("#productgetid").val();
+        $.ajax({
+            contentType: "application/json",
+            dataType: "json",
+            url: "/Default/GetProduct/" + id,
+            success: function (funk4) {
+                let result = JSON.parse(funk4);
+                console.log(result);
+                $("#productgetidedit").val(result.ProductId);
+                $("#productnameedit").val(result.ProductName);
+                $("#productstockedit").val(result.Stock);
+                $("#productpriceedit").val(result.Price);
+            }
+        });
+    });
+    $("#btnupdate").click(function () {
+        let values = {
+            ProductId: $("#productgetidedit").val(),
+            ProductName: $("#productnameedit").val(),
+            Stock: $("#productstockedit").val(),
+            Price: $("#productpriceedit").val()
+        };
+        $.ajax({
+            url: "/Default/UpdateProduct/",
+            data: values,
+            success: function (funk5) {
+                swal.fire("Tebrikler!", "Güncelleme Başarılı!", "success");
+                $("#btnlist").click();
+                $('#UpdateProductForm').modal('hide');
+            }
+        });
+    });
+</script>
+
+
+
+
+@* <div class="container">
+  
+    <table class="table table-bordered mt-3">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Ürün Adı</th>
+                <th>Ürün Stok</th>
+                <th>Ürün Fiyatı</th>
+            </tr>
+        </thead>
+        <tbody id="productTable">
+            
+        </tbody>
+    </table>
+</div>
+
+<script>
+    $("#btnlist").click(function () {
+        $.ajax({
+            contentType: "application/json",
+            dataType:"json",
+            type: "Get",
+            url: "/Default/ProductList/",
+            success: function (funk1) {
+                let products = JSON.parse(funk1);
+                let tableBody = $("#productTable");
+                tableBody.empty();
+
+                products.forEach(product => {
+                    let row = `
+                                <tr>
+                                    <td>${product.ProductId}</td>
+                                    <td>${product.ProductName}</td>
+                                    <td>${product.Stock}</td>
+                                    <td>${product.Price}</td>
+                                </tr>
+                            `;
+                    tableBody.append(row);
+                });
+            }
+        });
+    });
+</script> *@
+
+@* <div class="alert alert-success">Ürün Silme Ekranı</div>
+<div>
+    <input type="text" placeholder="Silinecekürün Id değerini giriniz" id="productdeletedid" class="form-control mt-2" />
+    <button id="btndelete" class="btn btn-outline-danger mt-2">Ürün Sil</button>
+    <br />
+</div>
+<hr />
+<div class="alert alert-success mt-2">Ürün Getirme</div>
+<div>
+    <input type="text" placeholder="Bilgisi getirelecek ürün ID değerini giriniz." id="productgetid" class="form-control mt-2" />
+    <button id="btnget" class="btn btn-outline-warning mt-2">Ürün Getir</button>
+    <br />
+</div> *@
